@@ -5,14 +5,14 @@ This script trains MLPs on multiple sparse parity problems at once,
 including composite tasks.
 """
 
-import argparse
 from collections import defaultdict
 import itertools
-from typing import List, Tuple
+from typing import List, Tuple, Literal
 import json
 import pickle
 import os
 
+import chz
 import torch
 import torch.nn as nn
 from tqdm.auto import tqdm
@@ -76,60 +76,54 @@ def get_batch(
 
     return x, y
 
+@chz.chz
+class CompositionJobConfig:
+    # Bit string length
+    n: int = 64
 
-def main():
-    p = argparse.ArgumentParser(
-        description="Train MLPs on multiple sparse parity problems"
-    )
-    p.add_argument("--n", type=int, default=64, help="bit string length")
-    p.add_argument("--width", type=int, default=512, help="hidden layer width of MLPs")
-    p.add_argument("--depth", type=int, default=3, help="depth of MLPs")
-    p.add_argument(
-        "--activation",
-        type=str,
-        default="ReLU",
-        choices=["ReLU", "Tanh", "Sigmoid"],
-        help="activation function",
-    )
-    p.add_argument("--layernorm", action="store_true", help="use layer normalization")
-    p.add_argument(
-        "--samples-per-task", type=int, default=2000, help="number of samples per task"
-    )
-    p.add_argument(
-        "--steps", type=int, default=200_000, help="number of training steps"
-    )
-    p.add_argument("--lr", type=float, default=1e-3, help="learning rate")
-    p.add_argument(
-        "--device",
-        type=str,
-        default="cuda" if torch.cuda.is_available() else "cpu",
-        help="device to use",
-    )
-    p.add_argument(
-        "--dtype",
-        type=str,
-        default="float32",
-        choices=["float32", "float64"],
-        help="data type",
-    )
-    p.add_argument("--seed", type=int, default=0, help="random seed")
-    p.add_argument("--save-dir", type=str, help="directory to save results")
-    p.add_argument("--verbose", action="store_true", help="print verbose output")
-    p.add_argument(
-        "--wandb-project",
-        type=str,
-        default=None,
-        help="wandb project name (omit to not log)",
-    )
-    p.add_argument(
-        "--codes",
-        type=str,
-        default="[[0], [1], [2], [3], [0, 1, 2, 3]]",
-        help="string representation of task codes to evaluate (must be valid Python list of lists)",
-    )
+    # Hidden layer width of MLPs
+    width: int = 128
 
-    args = p.parse_args()
+    # Depth of MLPs
+    depth: int = 2
 
+    # Activation function
+    activation: Literal["ReLU", "Tanh", "Sigmoid"] = "ReLU"
+    
+    # Whether to use layer normalization
+    layernorm: bool = False
+
+    # Number of samples per task
+    samples_per_task: int = 2000
+
+    # Number of training steps
+    steps: int = 200_000
+
+    # Learning rate
+    lr: float = 1e-3
+
+    # Device to use
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Data type
+    dtype: Literal["float32", "float64"] = "float32"
+
+    # Random seed
+    seed: int = 0
+
+    # Directory to save results
+    save_dir: str
+
+    # Verbose output
+    verbose: bool = False
+
+    # Wandb project name
+    wandb_project: str
+
+    # Task codes
+    codes: List[List[int]] = [[0], [1], [2], [3], [0, 1, 2, 3]]
+
+def run_parity(args: CompositionJobConfig):
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -254,4 +248,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = chz.entrypoint(CompositionJobConfig)
+    run_parity(args)
