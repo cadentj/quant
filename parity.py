@@ -106,7 +106,7 @@ class CompositionJobConfig:
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Data type
-    dtype: Literal["float32", "float64"] = "float32"
+    dtype: Literal["bfloat16", "float32", "float64"] = "float32"
 
     # Random seed
     seed: int = 0
@@ -121,7 +121,7 @@ class CompositionJobConfig:
     wandb_project: str
 
     # Task codes
-    codes: List[List[int]] = [[0], [1], [2], [3], [0, 1, 2, 3]]
+    codes: str = "[[0], [1], [2], [3], [0, 1, 2, 3]]"
 
 def run_parity(args: CompositionJobConfig):
     torch.manual_seed(args.seed)
@@ -131,7 +131,9 @@ def run_parity(args: CompositionJobConfig):
 
     if args.dtype == "float32":
         dtype = torch.float32
-    else:
+    elif args.dtype == "bfloat16":
+        dtype = torch.bfloat16
+    elif args.dtype == "float64":
         dtype = torch.float64
 
     device = torch.device(args.device)
