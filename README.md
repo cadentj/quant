@@ -1,5 +1,6 @@
 # Math 4025 project
 
+`inspect eval-retry logs/2026-02-09T17-20-28+00-00_aime2025_NrwYGRS82DVh57rbFf7zCQ.eval`
 
 ## Launching batch jobs
 
