@@ -5,5 +5,7 @@
     # --gpu-memory-utilization 0.80 \
     # --max_model_len 131072 \
 
-vllm serve google/gemma-3-4b-it \
+vllm serve google/gemma-3-270m-it \
     --dtype bfloat16 \
+
+# vllm serve unsloth/gemma-3-270m-bnb-4bit
