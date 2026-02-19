@@ -6,8 +6,7 @@ including composite tasks.
 """
 
 from collections import defaultdict
-import itertools
-from typing import List, Tuple, Literal
+from typing import Literal
 import json
 import pickle
 import os
@@ -16,82 +15,18 @@ import chz
 import torch
 import torch.nn as nn
 from tqdm.auto import tqdm
-
+from model import Mlp, MlpConfig
+from task import ParityTaskConfig, get_subsets, get_batch, K
 import wandb
 
-def get_batch(
-    n_tasks: int,
-    n: int,
-    subsets: List[List[int]],
-    task_codes: List[List[int]],
-    batch_sizes: List[int],
-    device: torch.device = torch.device("cpu"),
-    dtype: torch.dtype = torch.float32,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Create a batch for sparse parity tasks.
-
-    Parameters
-    ----------
-    n_tasks : int
-        Number of atomic tasks (must equal len(subsets)).
-    n : int
-        Length of each random bit-string.
-    subsets : List[List[int]]
-        Each subsets[i] is a list of zero-based bit-positions in [0..n-1].
-    task_codes : List[List[int]]
-        Which atomic tasks to combine for each sample.
-    batch_sizes : List[int]
-        Number of samples per code; same length as task_codes.
-    device : str
-        Torch device.
-    dtype : torch.dtype
-        Dtype for `x`. Output `y` is torch.int64.
-
-    Returns
-    -------
-    x : torch.Tensor, shape (sum(batch_sizes), n_tasks + n)
-    y : torch.Tensor, shape (sum(batch_sizes),)
-    """
-    assert len(subsets) == n_tasks, "Need exactly one subset per atomic task"
-    assert len(task_codes) == len(batch_sizes)
-
-    total = sum(batch_sizes)
-    x = torch.zeros((total, n_tasks + n), dtype=dtype, device=device)
-    bits = torch.randint(0, 2, (total, n), dtype=dtype, device=device)
-    x[:, n_tasks:] = bits
-
-    y = torch.empty((total,), dtype=torch.int64, device=device)
-
-    idx = 0
-    for code, size in zip(task_codes, batch_sizes):
-        if size <= 0:
-            continue
-        # Union of bit‐positions
-        S = set(itertools.chain.from_iterable(subsets[c] for c in code))
-        x[idx:idx+size, code] = 1
-        slice_bits = bits[idx:idx+size][:, sorted(S)]
-        y[idx:idx+size] = slice_bits.sum(dim=1).remainder(2).to(torch.int64)
-        idx += size
-
-    return x, y
 
 @chz.chz
 class CompositionJobConfig:
-    # Bit string length
-    n: int = 64
+    # Model configuration
+    model: MlpConfig
 
-    # Hidden layer width of MLPs
-    width: int = 128
-
-    # Depth of MLPs
-    depth: int = 2
-
-    # Activation function
-    activation: Literal["ReLU", "Tanh", "Sigmoid"] = "ReLU"
-    
-    # Whether to use layer normalization
-    layernorm: bool = False
+    # Task configuration
+    task: ParityTaskConfig
 
     # Number of samples per task
     samples_per_task: int = 2000
@@ -120,8 +55,6 @@ class CompositionJobConfig:
     # Wandb project name
     wandb_project: str
 
-    # Task codes
-    codes: str = "[[0], [1], [2], [3], [0, 1, 2, 3]]"
 
 def run_parity(args: CompositionJobConfig):
     torch.manual_seed(args.seed)
@@ -138,52 +71,23 @@ def run_parity(args: CompositionJobConfig):
 
     device = torch.device(args.device)
 
-    if args.activation == "ReLU":
-        activation_fn = nn.ReLU
-    elif args.activation == "Tanh":
-        activation_fn = nn.Tanh
-    else:
-        activation_fn = nn.Sigmoid
+    n_tasks = args.task.n_tasks
+    assert args.task.n >= n_tasks * K
+    Ss = get_subsets(n_tasks)
 
-    n_tasks = 4
-    assert args.n >= 16
-    Ss = [
-        [0, 1, 2, 3],
-        [4, 5, 6, 7],
-        [8, 9, 10, 11],
-        [12, 13, 14, 15],
-    ]
-    
     try:
-        codes = eval(args.codes)
+        codes = eval(args.task.codes)
         if not isinstance(codes, list) or not all(isinstance(code, list) for code in codes):
             raise ValueError("Codes must be a list of lists")
     except Exception as e:
         raise ValueError(f"Invalid codes format: {e}. Must be a valid Python list of lists.")
-    
+
     train_sizes = [args.samples_per_task] * len(codes)
 
-    layers = []
-    for i in range(args.depth):
-        if i == 0:
-            if args.layernorm:
-                layers.append(nn.LayerNorm(n_tasks + args.n))
-            layers.append(nn.Linear(n_tasks + args.n, args.width))
-            layers.append(activation_fn())
-        elif i == args.depth - 1:
-            if args.layernorm:
-                layers.append(nn.LayerNorm(args.width))
-            layers.append(nn.Linear(args.width, 2))
-        else:
-            if args.layernorm:
-                layers.append(nn.LayerNorm(args.width))
-            layers.append(nn.Linear(args.width, args.width))
-            layers.append(activation_fn())
+    input_dim = n_tasks + args.task.n
+    mlp = Mlp(input_dim, args.model).to(dtype).to(device)
 
-    mlp = nn.Sequential(*layers).to(dtype).to(device)
-
-    ps = sum(p.numel() for p in mlp.parameters())
-    print("Number of parameters:", ps)
+    print("Number of parameters:", mlp.ps())
     print("Codes:", codes)
 
     optimizer = torch.optim.Adam(mlp.parameters(), lr=args.lr, eps=1e-5)
@@ -191,8 +95,8 @@ def run_parity(args: CompositionJobConfig):
 
     steps = []
     samples = []
-    losses = [] # loss per step
-    subtask_losses = defaultdict(list) # step -> loss for each task
+    losses = []
+    subtask_losses = defaultdict(list)
 
     use_wandb = args.wandb_project is not None
     if use_wandb:
@@ -203,18 +107,18 @@ def run_parity(args: CompositionJobConfig):
             for i, code in enumerate(codes):
                 x, y = get_batch(
                     n_tasks,
-                    args.n,
+                    args.task.n,
                     Ss,
                     [code],
                     [train_sizes[i]],
-                    device=device,
                     dtype=dtype,
+                    device=device,
                 )
                 y_pred = mlp(x)
                 subtask_losses[i].append(loss_fn(y_pred, y).item())
 
         x, y = get_batch(
-            n_tasks, args.n, Ss, codes, train_sizes, device=device, dtype=dtype
+            n_tasks, args.task.n, Ss, codes, train_sizes, dtype=dtype, device=device
         )
         y_pred = mlp(x)
         loss = loss_fn(y_pred, y)
@@ -230,7 +134,12 @@ def run_parity(args: CompositionJobConfig):
             wandb.log({"loss": loss.item()}, step=step)
 
     os.makedirs(args.save_dir, exist_ok=True)
-    torch.save(mlp.state_dict(), os.path.join(args.save_dir, "model.pt"))
+
+    # TODO: this should probably be simpler to configure, maybe n is set post init?
+    torch.save(
+        {"state_dict": mlp.state_dict(), "input_dim": input_dim},
+        os.path.join(args.save_dir, "model.pt"),
+    )
 
     results = {
         "steps": steps,
@@ -238,15 +147,27 @@ def run_parity(args: CompositionJobConfig):
         "subtask_losses": subtask_losses,
         "Ss": Ss,
         "codes": codes,
-        "n_parameters": ps,
+        "n_parameters": mlp.ps(),
         "samples": samples,
     }
 
     with open(os.path.join(args.save_dir, "results.pkl"), "wb") as f:
         pickle.dump(results, f)
 
+    config_to_save = {
+        "model": chz.asdict(args.model),    
+        "task": chz.asdict(args.task),
+        "steps": args.steps,
+        "lr": args.lr,
+        "dtype": args.dtype,
+        "seed": args.seed,
+        "save_dir": args.save_dir,
+        "wandb_project": args.wandb_project,
+        "verbose": args.verbose,
+        "samples_per_task": args.samples_per_task,
+    }
     with open(os.path.join(args.save_dir, "config.json"), "w") as f:
-        json.dump(vars(args), f)
+        json.dump(config_to_save, f)
 
 
 if __name__ == "__main__":

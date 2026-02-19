@@ -18,13 +18,11 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = [
-    "inspect-ai>=0.3.174",
     "torch>=2.9.1",
-    "vllm==0.15.1",
-    "llmcompressor>=0.9.0.1",
+    "torchao>=0.16.0",
 ]
-evals = [
-    "backoff>=2.2.1",
-    "datasets>=4.0.0",
-    "docent-python>=0.1.47a0",
+
+[dependency-groups]
+dev = [
+    "prek>=0.3.3",
 ]
