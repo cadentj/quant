@@ -1,3 +1,7 @@
 [submodule "inspect_evals"]
 	path = inspect_evals
 	url = https://github.com/cadentj/inspect_evals
+
+[submodule "inspect_sandboxes"]
+	path = inspect_sandboxes
+	url = https://github.com/meridianlabs-ai/inspect_sandboxes

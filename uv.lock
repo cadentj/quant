@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12, <3.14"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'win32'",
@@ -327,6 +327,10 @@ dependencies = [
 [package.optional-dependencies]
 evals = [
     { name = "inspect-evals", extra = ["swe-bench"] },
+    { name = "inspect-sandboxes" },
+    { name = "modal" },
+]
+gpu = [
     { name = "vllm" },
 ]
 
@@ -334,16 +338,18 @@ evals = [
 requires-dist = [
     { name = "chz", specifier = ">=0.4.0" },
     { name = "inspect-evals", extras = ["swe-bench"], marker = "extra == 'evals'", editable = "inspect_evals" },
+    { name = "inspect-sandboxes", marker = "extra == 'evals'", editable = "inspect_sandboxes" },
     { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "modal", marker = "extra == 'evals'", specifier = ">=1.3.4" },
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "toml", specifier = ">=0.10.2" },
     { name = "tqdm", specifier = ">=4.66.3" },
-    { name = "vllm", marker = "extra == 'evals'", specifier = ">=0.11.0" },
+    { name = "vllm", marker = "extra == 'gpu'", specifier = ">=0.11.0" },
     { name = "wandb", specifier = ">=0.24.1" },
 ]
-provides-extras = ["evals"]
+provides-extras = ["evals", "gpu"]
 
 [[package]]
 name = "cbor2"
@@ -1485,10 +1491,39 @@ test-py311-or-lower = [
 ]
 test-py312-or-higher = [
     { name = "cvebench", marker = "python_full_version >= '3.12'", git = "https://github.com/Scott-Simmons/cve-bench.git?rev=92541add2ebd89e5b15ed260eb5d0e9b5102c33e" },
-    { name = "livebench", marker = "(python_full_version >= '3.12' and sys_platform != 'win32') or (python_full_version == '3.12.*' and sys_platform == 'win32')", git = "https://github.com/LiveBench/LiveBench.git?rev=1c4c655" },
-    { name = "mlebench", marker = "python_full_version >= '3.12'", git = "https://github.com/openai/mle-bench.git?rev=1d391b0" },
-    { name = "nltk", marker = "python_full_version >= '3.12'" },
-    { name = "sentencepiece", marker = "python_full_version >= '3.12'", specifier = ">=0.2.1" },
+    { name = "livebench", marker = "python_full_version < '3.13' or sys_platform != 'win32'", git = "https://github.com/LiveBench/LiveBench.git?rev=1c4c655" },
+    { name = "mlebench", git = "https://github.com/openai/mle-bench.git?rev=1d391b0" },
+    { name = "nltk" },
+    { name = "sentencepiece", specifier = ">=0.2.1" },
+]
+
+[[package]]
+name = "inspect-sandboxes"
+version = "0.1.0"
+source = { editable = "inspect_sandboxes" }
+dependencies = [
+    { name = "inspect-ai" },
+    { name = "modal" },
+    { name = "tenacity" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "inspect-ai", specifier = ">=0.3.180" },
+    { name = "modal", specifier = ">=1.3.3" },
+    { name = "tenacity", specifier = ">=9.1.4" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.19.1" },
+    { name = "pre-commit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "types-pyyaml" },
 ]
 
 [[package]]
