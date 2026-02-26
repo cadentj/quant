@@ -8,21 +8,19 @@ dependencies = [
     "chz>=0.4.0",
     "ipykernel>=7.1.0",
     "matplotlib>=3.10.8",
-    "numpy<2.3",
+    "numpy>=2.2.6",
     "pandas>=3.0.0",
-    "seaborn>=0.13.2",
     "toml>=0.10.2",
     "tqdm>=4.66.3",
     "wandb>=0.24.1",
 ]
 
+# Check at some point whether inspect uses a hf dependency which works w a more recent vllm
 [project.optional-dependencies]
-gpu = [
-    "torch>=2.9.1",
-    "torchao>=0.16.0",
+evals = [
+    "inspect_evals[swe_bench]",
+    "vllm>=0.11.0",
 ]
 
-[dependency-groups]
-dev = [
-    "prek>=0.3.3",
-]
+[tool.uv.sources]
+inspect_evals = { path = "/root/quant/inspect_evals", editable = true }
