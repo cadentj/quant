@@ -3,3 +3,7 @@ __pycache__/
 
 /results/
 .cache/
+
+*.eval
+
+.DS_Store

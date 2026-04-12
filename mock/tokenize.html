@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mock Activation Sequences</title>
+  <style>
+    body { margin: 1rem; font-family: system-ui, sans-serif; color: #111; background: #fff; }
+    main { max-width: 90ch; margin: 0 auto; }
+    h1 { font-size: 1.25rem; margin: 0 0 0.5rem; font-weight: 600; }
+    .intro { margin: 0 0 1rem; color: #444; font-size: 0.9rem; line-height: 1.45; }
+    .hint { margin: 0 0 1rem; color: #666; font-size: 0.85rem; }
+    section { margin-bottom: 1.75rem; }
+    section h2 { font-size: 1rem; margin: 0 0 0.35rem; font-weight: 600; }
+    pre.code {
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8125rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .tok { display: inline; padding: 0; margin: 0; vertical-align: baseline; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Mock Activation Sequences</h1>
+    <p class="intro">
+      Tokens are split on whitespace and assigned synthetic SAE-style activation magnitudes:
+      mostly near zero, mildly noisy on nearby context, and sharply higher on the tokens most
+      related to the syntax break, framework break, or hallucinated code.
+    </p>
+    <p class="hint">Stronger highlight = higher synthetic activation. Hover a token for the numeric value.</p>
+    <section>
+  <h2>Broken Python Syntax</h2>
+  <pre class="code"><span class="tok" style="background: rgba(230, 90, 90, 0.085);" title="activation=0.01">def</span> <span class="tok" style="background: rgba(230, 90, 90, 0.434);" title="activation=0.64">normalize_scores(scores):</span>
+    <span class="tok" style="background: rgba(230, 90, 90, 0.169);" title="activation=0.16">total</span> <span class="tok" style="background: rgba(230, 90, 90, 0.085);" title="activation=0.01">=</span> <span class="tok" style="background: rgba(230, 90, 90, 0.398);" title="activation=0.58">sum(scores)</span>
+    <span class="tok" style="background: rgba(230, 90, 90, 0.170);" title="activation=0.16">normalized</span> <span class="tok" style="background: rgba(230, 90, 90, 0.100);" title="activation=0.04">=</span> <span class="tok" style="background: rgba(230, 90, 90, 0.093);" title="activation=0.02">[]</span>
+
+    <span class="tok" style="background: rgba(230, 90, 90, 0.337);" title="activation=0.47">for</span> <span class="tok" style="background: rgba(230, 90, 90, 0.284);" title="activation=0.37">score</span> <span class="tok" style="background: rgba(230, 90, 90, 0.354);" title="activation=0.50">in</span> <span class="tok" style="background: rgba(230, 90, 90, 0.426);" title="activation=0.63">scores</span>
+        <span class="tok" style="background: rgba(230, 90, 90, 0.550);" title="activation=0.86">normalized.append(score</span> <span class="tok" style="background: rgba(230, 90, 90, 0.098);" title="activation=0.03">/</span> <span class="tok" style="background: rgba(230, 90, 90, 0.201);" title="activation=0.22">total)</span>
+
+    <span class="tok" style="background: rgba(230, 90, 90, 0.201);" title="activation=0.22">return</span> <span class="tok" style="background: rgba(230, 90, 90, 0.105);" title="activation=0.04">normalized</span></pre>
+</section><section>
+  <h2>Django Core Break</h2>
+  <pre class="code"><span class="tok" style="background: rgba(245, 160, 70, 0.091);" title="activation=0.02">#</span> <span class="tok" style="background: rgba(245, 160, 70, 0.082);" title="activation=0.00">urls.py</span>
+<span class="tok" style="background: rgba(245, 160, 70, 0.083);" title="activation=0.01">from</span> <span class="tok" style="background: rgba(245, 160, 70, 0.192);" title="activation=0.20">django.contrib</span> <span class="tok" style="background: rgba(245, 160, 70, 0.088);" title="activation=0.01">import</span> <span class="tok" style="background: rgba(245, 160, 70, 0.202);" title="activation=0.22">admin</span>
+<span class="tok" style="background: rgba(245, 160, 70, 0.081);" title="activation=0.00">from</span> <span class="tok" style="background: rgba(245, 160, 70, 0.193);" title="activation=0.20">django.urls</span> <span class="tok" style="background: rgba(245, 160, 70, 0.093);" title="activation=0.02">import</span> <span class="tok" style="background: rgba(245, 160, 70, 0.150);" title="activation=0.13">path,</span> <span class="tok" style="background: rgba(245, 160, 70, 0.255);" title="activation=0.32">re_path</span>
+<span class="tok" style="background: rgba(245, 160, 70, 0.094);" title="activation=0.03">from</span> <span class="tok" style="background: rgba(245, 160, 70, 0.232);" title="activation=0.28">django.http</span> <span class="tok" style="background: rgba(245, 160, 70, 0.081);" title="activation=0.00">import</span> <span class="tok" style="background: rgba(245, 160, 70, 0.080);" title="activation=0.00">HttpResponse</span>
+
+<span class="tok" style="background: rgba(245, 160, 70, 0.084);" title="activation=0.01">def</span> <span class="tok" style="background: rgba(245, 160, 70, 0.174);" title="activation=0.17">catch_all(request,</span> <span class="tok" style="background: rgba(245, 160, 70, 0.095);" title="activation=0.03">*args,</span> <span class="tok" style="background: rgba(245, 160, 70, 0.091);" title="activation=0.02">**kwargs):</span>
+    <span class="tok" style="background: rgba(245, 160, 70, 0.083);" title="activation=0.01">return</span> <span class="tok" style="background: rgba(245, 160, 70, 0.082);" title="activation=0.00">HttpResponse(&quot;maintenance</span> <span class="tok" style="background: rgba(245, 160, 70, 0.083);" title="activation=0.00">mode&quot;)</span>
+
+<span class="tok" style="background: rgba(245, 160, 70, 0.297);" title="activation=0.39">urlpatterns</span> <span class="tok" style="background: rgba(245, 160, 70, 0.081);" title="activation=0.00">=</span> <span class="tok" style="background: rgba(245, 160, 70, 0.091);" title="activation=0.02">[</span>
+    <span class="tok" style="background: rgba(245, 160, 70, 0.454);" title="activation=0.68">re_path(r&quot;^.*$&quot;,</span> <span class="tok" style="background: rgba(245, 160, 70, 0.472);" title="activation=0.71">catch_all),</span>
+    <span class="tok" style="background: rgba(245, 160, 70, 0.554);" title="activation=0.86">path(&quot;admin/&quot;,</span> <span class="tok" style="background: rgba(245, 160, 70, 0.503);" title="activation=0.77">admin.site.urls),</span>
+<span class="tok" style="background: rgba(245, 160, 70, 0.094);" title="activation=0.03">]</span></pre>
+</section><section>
+  <h2>LLM Hallucination</h2>
+  <pre class="code"><span class="tok" style="background: rgba(110, 130, 255, 0.085);" title="activation=0.01">from</span> <span class="tok" style="background: rgba(110, 130, 255, 0.424);" title="activation=0.63">payments.audit</span> <span class="tok" style="background: rgba(110, 130, 255, 0.081);" title="activation=0.00">import</span> <span class="tok" style="background: rgba(110, 130, 255, 0.411);" title="activation=0.60">AuditLogger</span>
+<span class="tok" style="background: rgba(110, 130, 255, 0.088);" title="activation=0.01">from</span> <span class="tok" style="background: rgba(110, 130, 255, 0.115);" title="activation=0.06">users.permissions</span> <span class="tok" style="background: rgba(110, 130, 255, 0.097);" title="activation=0.03">import</span> <span class="tok" style="background: rgba(110, 130, 255, 0.520);" title="activation=0.80">require_workspace_admin</span>
+<span class="tok" style="background: rgba(110, 130, 255, 0.099);" title="activation=0.03">from</span> <span class="tok" style="background: rgba(110, 130, 255, 0.242);" title="activation=0.30">core.feature_flags</span> <span class="tok" style="background: rgba(110, 130, 255, 0.092);" title="activation=0.02">import</span> <span class="tok" style="background: rgba(110, 130, 255, 0.484);" title="activation=0.74">is_rollout_enabled</span>
+
+<span class="tok" style="background: rgba(110, 130, 255, 0.086);" title="activation=0.01">def</span> <span class="tok" style="background: rgba(110, 130, 255, 0.206);" title="activation=0.23">delete_workspace(request,</span> <span class="tok" style="background: rgba(110, 130, 255, 0.152);" title="activation=0.13">workspace_id):</span>
+    <span class="tok" style="background: rgba(110, 130, 255, 0.492);" title="activation=0.75">require_workspace_admin(request.user,</span> <span class="tok" style="background: rgba(110, 130, 255, 0.123);" title="activation=0.08">workspace_id)</span>
+
+    <span class="tok" style="background: rgba(110, 130, 255, 0.082);" title="activation=0.00">if</span> <span class="tok" style="background: rgba(110, 130, 255, 0.082);" title="activation=0.00">not</span> <span class="tok" style="background: rgba(110, 130, 255, 0.513);" title="activation=0.79">is_rollout_enabled(&quot;safe_workspace_delete&quot;):</span>
+        <span class="tok" style="background: rgba(110, 130, 255, 0.094);" title="activation=0.03">return</span> <span class="tok" style="background: rgba(110, 130, 255, 0.115);" title="activation=0.06">{&quot;error&quot;:</span> <span class="tok" style="background: rgba(110, 130, 255, 0.190);" title="activation=0.20">&quot;feature</span> <span class="tok" style="background: rgba(110, 130, 255, 0.104);" title="activation=0.04">disabled&quot;}</span>
+
+    <span class="tok" style="background: rgba(110, 130, 255, 0.413);" title="activation=0.61">AuditLogger.log_workspace_deletion(request.user.id,</span> <span class="tok" style="background: rgba(110, 130, 255, 0.095);" title="activation=0.03">workspace_id)</span>
+    <span class="tok" style="background: rgba(110, 130, 255, 0.099);" title="activation=0.04">return</span> <span class="tok" style="background: rgba(110, 130, 255, 0.628);" title="activation=1.00">WorkspaceService.soft_delete_with_snapshot(workspace_id)</span></pre>
+</section>
+  </main>
+</body>
+</html>
