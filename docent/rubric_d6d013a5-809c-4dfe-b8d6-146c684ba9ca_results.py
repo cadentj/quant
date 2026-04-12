@@ -42,5 +42,3 @@ client = Docent(api_key=DOCENT_API_KEY, server_url=SERVER_URL)
 result = client.execute_dql(COLLECTION_ID, DQL_QUERY)
 df = client.dql_result_to_df_experimental(result)
 
-# %%
-
