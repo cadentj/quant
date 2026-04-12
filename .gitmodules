@@ -1,6 +1,6 @@
 [submodule "inspect_evals"]
 	path = inspect_evals
-	url = https://github.com/cadentj/inspect_evals
+	url = https://github.com/UKGovernmentBEIS/inspect_evals.git
 
 [submodule "inspect_sandboxes"]
 	path = inspect_sandboxes
