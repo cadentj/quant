@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 import shutil
 from dataclasses import asdict, dataclass
@@ -376,21 +375,6 @@ def is_gemma4_model(model_id: str, model_type: str | None) -> bool:
     return model_type == "gemma4" or "gemma-4" in model_id.lower()
 
 
-def build_gemma4_text_only_wrapper(transformers: Any, conditional_model: Any) -> Any:
-    accelerate = require_dependency("accelerate", "pip install accelerate")
-    with accelerate.init_empty_weights():
-        wrapped = transformers.Gemma4ForCausalLM(copy.deepcopy(conditional_model.config.text_config))
-    wrapped.model = conditional_model.model.language_model
-    wrapped.vocab_size = wrapped.config.vocab_size
-    wrapped.lm_head = conditional_model.lm_head
-    wrapped._keys_to_ignore_on_load_unexpected = [
-        f"model.{name}" for name in wrapped.model._keys_to_ignore_on_load_unexpected
-    ]
-    if hasattr(conditional_model, "generation_config"):
-        wrapped.generation_config = copy.deepcopy(conditional_model.generation_config)
-    return wrapped
-
-
 def load_runtime(args: argparse.Namespace) -> RuntimeContext:
     transformers = require_dependency(
         "transformers",
@@ -418,7 +402,7 @@ def load_runtime(args: argparse.Namespace) -> RuntimeContext:
                 "`uv pip install --upgrade 'transformers>=5.5'`"
             )
 
-        conditional_model = transformers.Gemma4ForConditionalGeneration.from_pretrained(
+        model = transformers.Gemma4ForConditionalGeneration.from_pretrained(
             args.model_id,
             revision=args.revision,
             dtype=args.precision,
@@ -429,7 +413,6 @@ def load_runtime(args: argparse.Namespace) -> RuntimeContext:
             revision=args.revision,
             trust_remote_code=args.trust_remote_code,
         )
-        model = build_gemma4_text_only_wrapper(transformers, conditional_model)
         if torch.cuda.is_available():
             model = model.to("cuda")
         return RuntimeContext(
@@ -437,7 +420,7 @@ def load_runtime(args: argparse.Namespace) -> RuntimeContext:
             processor=None,
             tokenizer=tokenizer,
             model_type=model_type,
-            loader="Gemma4ForConditionalGeneration->Gemma4ForCausalLM",
+            loader="Gemma4ForConditionalGeneration",
             calibration_mode="tokenizer_text",
             pipeline="basic",
             ignore_patterns=list(args.ignore_pattern or DEFAULT_GEMMA4_IGNORE_PATTERNS),
