@@ -12,8 +12,8 @@ from typing import Any
 
 DEFAULT_MODEL_ID = "google/gemma-4-E2B-it"
 DEFAULT_MODEL_REVISION = "b4a601102c3d45e2b7b50e2057a6d5ec8ed4adcf"
-DEFAULT_CALIBRATION_DATASET = "HuggingFaceH4/ultrachat_200k"
-DEFAULT_CALIBRATION_SPLIT = "train_sft"
+DEFAULT_CALIBRATION_DATASET = "mit-han-lab/pile-val-backup"
+DEFAULT_CALIBRATION_SPLIT = "validation"
 DEFAULT_RECIPE_NAME = "gptq-w4a16"
 DEFAULT_GROUP_SIZE = 128
 DEFAULT_CALIBRATION_SAMPLES = 512
@@ -282,9 +282,10 @@ def prepare_calibration_dataset(
     datasets = require_dependency("datasets", "pip install datasets")
     torch = require_dependency("torch", "pip install torch")
 
+    load_count = args.calibration_samples * 10
     split_expr = args.calibration_split
     if "[" not in split_expr:
-        split_expr = f"{split_expr}[:{args.calibration_samples}]"
+        split_expr = f"{split_expr}[:{load_count}]"
 
     dataset = datasets.load_dataset(
         args.calibration_dataset,
@@ -292,32 +293,41 @@ def prepare_calibration_dataset(
         split=split_expr,
     )
     original_columns = list(dataset.column_names)
-    dataset = dataset.shuffle(seed=args.seed)
-    if len(dataset) > args.calibration_samples:
-        dataset = dataset.select(range(args.calibration_samples))
-
-    first_row = dataset[0]
-    _, detected_format = dataset_messages(first_row)
 
     if runtime.calibration_mode == "gemma4_processor":
-        processor = runtime.processor
-        prepared = dataset.map(
-            lambda row: gemma4_preprocess(row, processor, args.max_seq_len),
-            remove_columns=original_columns,
-            desc="Tokenizing Gemma 4 calibration samples",
+        tokenizer = runtime.processor.tokenizer
+
+        def preprocess(example):
+            return {
+                "input_ids": tokenizer.encode(
+                    example["text"].strip()
+                )[:args.max_seq_len]
+            }
+
+        prepared = (
+            dataset.shuffle(seed=args.seed)
+            .map(preprocess, remove_columns=original_columns, desc="Tokenizing calibration samples")
+            .filter(
+                lambda example: len(example["input_ids"]) >= args.max_seq_len,
+                desc="Filtering for full-length calibration samples",
+            )
+            .select(range(args.calibration_samples))
         )
+        detected_format = "text"
     else:
+        dataset = dataset.shuffle(seed=args.seed)
+        if len(dataset) > args.calibration_samples:
+            dataset = dataset.select(range(args.calibration_samples))
+
+        first_row = dataset[0]
+        _, detected_format = dataset_messages(first_row)
+
         tokenizer = runtime.tokenizer
         prepared = dataset.map(
             lambda row: text_preprocess(row, tokenizer, args.max_seq_len),
             remove_columns=original_columns,
             desc="Tokenizing calibration samples",
         )
-
-    prepared = prepared.filter(
-        lambda example: len(example["input_ids"]) >= args.max_seq_len,
-        desc="Filtering for full-length calibration samples",
-    )
 
     info = {
         "input_format": detected_format,
