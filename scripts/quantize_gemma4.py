@@ -231,13 +231,15 @@ def gemma4_preprocess(row: dict[str, Any], processor: Any, max_seq_len: int) -> 
     rendered = processor.apply_chat_template(
         wrap_messages_for_gemma4(messages),
         return_tensors="pt",
-        padding=False,
-        truncation=True,
-        max_length=max_seq_len,
         tokenize=True,
-        add_special_tokens=False,
         return_dict=True,
         add_generation_prompt=False,
+        processor_kwargs={
+            "padding": False,
+            "truncation": True,
+            "max_length": max_seq_len,
+            "add_special_tokens": False,
+        },
     )
     return {key: value.tolist() for key, value in rendered.items()}
 
