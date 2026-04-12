@@ -16,8 +16,8 @@ vllm_image = (
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})
 )
 
-MODEL_NAME = "kh4dien/gemma4-e2b-it-gptq-baseline"
-MODEL_REVISION = "30b1e01c7af5e1d544f9e4a2a335d2d61d524ef7"
+MODEL_NAME = "kh4dien/gemma4-e2b-it-gptq-baseline-v2"
+MODEL_REVISION = "28e6fd06b96138a3546bdff7cd41f773a3daccc0"
 
 MAX_MODEL_LEN = 32768
 GPU_MEMORY_UTILIZATION = 0.90

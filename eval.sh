@@ -15,10 +15,10 @@ VLLM_BASE_URL=https://ndif--gemma4-e2b-it-gptq-baseline-serve.modal.run/v1
 # NOTE(cadentj): I also omit 60 since the model occasionally hits the limit.
 # NOTE(cadentj): I also omit 55, 65, 66, 70 since it contains an image which occasionally hits the 32768 token limit.
 uv run inspect eval inspect_evals/gdm_intercode_ctf \
-    --model openai/kh4dien/gemma4-e2b-it-gptq-baseline \
+    --model openai/kh4dien/gemma4-e2b-it-gptq-baseline-v2 \
     --max-connections 64 \
     --model-base-url "$VLLM_BASE_URL" \
     -T sandbox=modal \
-    --epochs 3
+    --epochs 1
 
 echo "Done!"

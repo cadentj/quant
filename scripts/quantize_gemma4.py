@@ -408,7 +408,7 @@ def load_runtime(args: argparse.Namespace) -> RuntimeContext:
             dtype=args.precision,
             trust_remote_code=args.trust_remote_code,
         )
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
+        processor = transformers.AutoProcessor.from_pretrained(
             args.model_id,
             revision=args.revision,
             trust_remote_code=args.trust_remote_code,
@@ -417,8 +417,8 @@ def load_runtime(args: argparse.Namespace) -> RuntimeContext:
             model = model.to("cuda")
         return RuntimeContext(
             model=model,
-            processor=None,
-            tokenizer=tokenizer,
+            processor=processor,
+            tokenizer=processor.tokenizer,
             model_type=model_type,
             loader="Gemma4ForConditionalGeneration",
             calibration_mode="tokenizer_text",
