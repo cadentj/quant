@@ -552,7 +552,7 @@ def main() -> None:
     }
     if runtime.processor is not None:
         oneshot_kwargs["processor"] = runtime.processor
-    if runtime.tokenizer is not None:
+    elif runtime.tokenizer is not None:
         oneshot_kwargs["tokenizer"] = runtime.tokenizer
     if runtime.pipeline is not None:
         oneshot_kwargs["pipeline"] = runtime.pipeline
