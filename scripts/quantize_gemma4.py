@@ -312,6 +312,11 @@ def prepare_calibration_dataset(
             desc="Tokenizing calibration samples",
         )
 
+    prepared = prepared.filter(
+        lambda example: len(example["input_ids"]) >= args.max_seq_len,
+        desc="Filtering for full-length calibration samples",
+    )
+
     info = {
         "input_format": detected_format,
         "pretokenized": True,
@@ -421,7 +426,7 @@ def load_runtime(args: argparse.Namespace) -> RuntimeContext:
             tokenizer=processor.tokenizer,
             model_type=model_type,
             loader="Gemma4ForConditionalGeneration",
-            calibration_mode="tokenizer_text",
+            calibration_mode="gemma4_processor",
             pipeline="basic",
             ignore_patterns=list(args.ignore_pattern or DEFAULT_GEMMA4_IGNORE_PATTERNS),
         )
@@ -553,6 +558,12 @@ def main() -> None:
         oneshot_kwargs["pipeline"] = runtime.pipeline
 
     oneshot(**oneshot_kwargs)
+
+    if runtime.processor is not None:
+        runtime.processor.save_pretrained(str(args.output_dir))
+    elif runtime.tokenizer is not None:
+        runtime.tokenizer.save_pretrained(str(args.output_dir))
+
     write_json(args.output_dir / "quantization_manifest.json", asdict(manifest))
 
     if args.upload_repo:
