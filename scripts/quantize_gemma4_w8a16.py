@@ -14,7 +14,7 @@ DEFAULT_MODEL_ID = "google/gemma-4-E2B-it"
 DEFAULT_MODEL_REVISION = "b4a601102c3d45e2b7b50e2057a6d5ec8ed4adcf"
 DEFAULT_CALIBRATION_DATASET = "mit-han-lab/pile-val-backup"
 DEFAULT_CALIBRATION_SPLIT = "validation"
-DEFAULT_RECIPE_NAME = "gptq-w4a16"
+DEFAULT_RECIPE_NAME = "quant-w8a16"
 DEFAULT_GROUP_SIZE = 128
 DEFAULT_CALIBRATION_SAMPLES = 512
 DEFAULT_MAX_SEQ_LEN = 2048
@@ -77,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Quantize google/gemma-4-E2B-it offline with llm-compressor using a "
-            "stock GPTQ W4A16 recipe and emit a reproducibility manifest."
+            "stock W8A16 recipe and emit a reproducibility manifest."
         )
     )
     parser.add_argument("--model-id", default=DEFAULT_MODEL_ID)
@@ -339,22 +339,22 @@ def prepare_calibration_dataset(
 
 def build_recipe(args: argparse.Namespace, ignore_patterns: list[str]) -> Any:
     try:
-        gptq_module = __import__("llmcompressor.modifiers.gptq", fromlist=["GPTQModifier"])
-        GPTQModifier = getattr(gptq_module, "GPTQModifier")
+        quant_module = __import__("llmcompressor.modifiers.quantization", fromlist=["QuantizationModifier"])
+        QuantizationModifier = getattr(quant_module, "QuantizationModifier")
     except (ImportError, AttributeError) as exc:
         raise SystemExit(
-            "Could not import `GPTQModifier` from llmcompressor. "
+            "Could not import `QuantizationModifier` from llmcompressor. "
             "Install a recent `llmcompressor` build, preferably from source."
         ) from exc
 
     if args.group_size == DEFAULT_GROUP_SIZE:
-        return GPTQModifier(
+        return QuantizationModifier(
             targets="Linear",
-            scheme="W4A16",
+            scheme="W8A16",
             ignore=ignore_patterns,
         )
 
-    return GPTQModifier(
+    return QuantizationModifier(
         ignore=ignore_patterns,
         config_groups={
             "group_0": {
@@ -362,7 +362,7 @@ def build_recipe(args: argparse.Namespace, ignore_patterns: list[str]) -> Any:
                 "input_activations": None,
                 "output_activations": None,
                 "weights": {
-                    "num_bits": 4,
+                    "num_bits": 8,
                     "type": "int",
                     "symmetric": True,
                     "strategy": "group",
@@ -477,7 +477,7 @@ def maybe_upload(output_dir: Path, repo_id: str, private: bool) -> None:
         folder_path=str(output_dir),
         repo_id=repo_id,
         repo_type="model",
-        commit_message="Upload Gemma 4 GPTQ W4A16 baseline",
+        commit_message="Upload Gemma 4 W8A16 baseline",
     )
 
 
@@ -502,9 +502,9 @@ def main() -> None:
         loader=runtime.loader,
         precision=args.precision,
         recipe_name=DEFAULT_RECIPE_NAME,
-        quantization_scheme="W4A16",
+        quantization_scheme="W8A16",
         target_modules=["Linear"],
-        weight_bits=4,
+        weight_bits=8,
         weight_strategy="group",
         weight_symmetric=True,
         calibration_mode=runtime.calibration_mode,
